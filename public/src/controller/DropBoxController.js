@@ -6,21 +6,23 @@ class DropBoxController {
     this.progressBarEl = this.snackModalEl.querySelector(".mc-progress-bar-fg");
     this.nameFileEl = this.snackModalEl.querySelector(".filename");
     this.timeleftEl = this.snackModalEl.querySelector(".timeleft");
+    this.listFilesEl = document.querySelector("#list-of-files-and-directories");
 
     this.connectFirebase();
     this.initEvents();
+    this.readFiles();
   }
 
   connectFirebase() {
     const config = {
-      apiKey: window.ENV.FIREBASE_API_KEY,
-      authDomain: window.ENV.FIREBASE_AUTH_DOMAIN,
-      projectId: window.ENV.FIREBASE_PROJECT_ID,
-      storageBucket: window.ENV.FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: window.ENV.FIREBASE_MESSAGING_SENDER_ID,
-      appId: window.ENV.FIREBASE_APP_ID,
-      measurementId: window.ENV.FIREBASE_MEASUREMENT_ID,
-      databaseURL: window.ENV.FIREBASE_DATABASE_URL,
+      apiKey: "AIzaSyDT8zsdJUtDm3PhOhxMoaD7DH0TkrH5w44",
+      authDomain: "dropbox-clone-c2126.firebaseapp.com",
+      projectId: "dropbox-clone-c2126",
+      storageBucket: "dropbox-clone-c2126.appspot.com",
+      messagingSenderId: "378047327427",
+      appId: "1:378047327427:web:9df0685e84ccd738d60676",
+      measurementId: "G-TLTNMLT9KT",
+      databaseURL: "https://dropbox-clone-c2126-default-rtdb.firebaseio.com/",
     };
 
     firebase.initializeApp(config);
@@ -301,12 +303,39 @@ class DropBoxController {
     }
   }
 
-  getFileView(file) {
-    return `
-        <li>
-          ${this.getFileIconView(file)}
-          <div class="name text-center">${file.name}s</div>
-        </li>
-      `;
+  getFileView(file, key) {
+    let li = document.createElement("li");
+
+    li.dataset.key = key;
+
+    li.innerHTML = `
+    ${this.getFileIconView(file)}
+    <div class="name text-center">${file.name}</div>
+  `;
+
+    this.initEventsLi(li)
+
+    return li;
+  }
+
+  readFiles() {
+    this.getFirebaseRef().on("value", (snapshot) => {
+      this.listFilesEl.innerHTML = "";
+
+      snapshot.forEach((snapshotItem) => {
+        let key = snapshotItem.key;
+        let data = snapshotItem.val();
+
+        console.log(key, data);
+
+        this.listFilesEl.appendChild(this.getFileView(data, key));
+      });
+    });
+  }
+
+  initEventsLi(li) {
+    li.addEventListener('click', e => {
+      li.classList.toggle('selected')
+    })
   }
 }
