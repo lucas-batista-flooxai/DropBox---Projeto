@@ -126,7 +126,12 @@ class DropBoxController {
       this.uploadTask(event.target.files)
         .then((responses) => {
           responses.forEach((resp) => {
-            this.getFirebaseRef().push().set(resp.files["input-file"]);
+            this.getFirebaseRef().push().set({
+              name: resp.name,
+              type: resp.contentType,
+              path: resp.dowloadURLs[0],
+              size: resp.size
+            });
           });
 
           this.uploadComplete();
@@ -194,22 +199,44 @@ class DropBoxController {
     let promises = [];
 
     [...files].forEach((file) => {
-      let formData = new FormData();
-
-      formData.append("input-file", file);
-
       promises.push(
-        this.ajax(
-          "/upload",
-          "POST",
-          formData,
-          () => {
-            this.uploadProgress(event, file);
-          },
-          () => {
-            this.startUploadTime = Date.now();
-          }
-        )
+        new Promise((resolve, reject) => {
+          let fileRef = firebase
+            .storage()
+            .ref(this.currentFolder.join("/"))
+            .child(file.name);
+
+          let task = fileRef.put(file);
+
+          task.on(
+            "state_changed",
+            (snapshot) => {
+              this.uploadProgress(
+                {
+                  loaded: snapshot.bytesTransferred,
+                  total: snapshot.totalBytes,
+                },
+                file
+              );
+            },
+            (error) => {
+              console.error(error);
+              reject(error);
+            },
+            () => {
+              fileRef
+                .getMetadata()
+                .then((metadata) => {
+                  resolve(metadata);
+                })
+                .catch((err) => {
+                  reject(err);
+                });
+              console.log("sucess", snapshot);
+              resolve();
+            }
+          );
+        })
       );
     });
 
@@ -500,15 +527,15 @@ class DropBoxController {
 
     this.navEl.innerHTML = nav.innerHTML;
 
-     this.navEl.querySelectorAll('a').forEach(a=> {
-      a.addEventListener('click', e => {
-        e.preventDefault()
+    this.navEl.querySelectorAll("a").forEach((a) => {
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
 
-        this.currentFolder = a.dataset.path.split('/')
+        this.currentFolder = a.dataset.path.split("/");
 
-        this.openFolder()
-      })
-     })
+        this.openFolder();
+      });
+    });
 
     /*
                       <span class="breadcrumb-segment__wrapper">
